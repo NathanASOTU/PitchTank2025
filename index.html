@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pitch Tank Competition</title>
+  <script src="https://cdn.jsdelivr.net/npm/react@18.2.0/umd/react.production.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/react-dom@18.2.0/umd/react-dom.production.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/babel-standalone@7.22.9/babel.min.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body>
+  <div id="root"></div>
+  <script type="text/babel">
+    const { useState, useEffect } = React;
+
+    // Firebase configuration
+    const firebaseConfig = {
+      apiKey: "AIzaSyDRwVHh0r-hpb1Wfa6YdSj4cZRWx9Wl0pM",
+      authDomain: "asotu-con-pitch-tank.firebaseapp.com",
+      projectId: "asotu-con-pitch-tank",
+      storageBucket: "asotu-con-pitch-tank.firebasestorage.app",
+      messagingSenderId: "397957008743",
+      appId: "1:397957008743:web:919855d25d5e739fb8f3c2"
+    };
+
+    // Initialize Firebase
+    const app = firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
+    // Room configurations
+    const rooms = {
+      studio1: {
+        name: "Studio 1",
+        judges: [
+          { name: "Kyle Mountsier", image: "https://via.placeholder.com/100?text=Kyle" },
+          { name: "Beth Hill", image: "https://via.placeholder.com/100?text=Beth" },
+          { name: "Christopher Twohig", image: "https://via.placeholder.com/100?text=Christopher" },
+          { name: "Chase Fraser", image: "https://via.placeholder.com/100?text=Chase" }
+        ],
+        companies: [
+          { name: "Autoz Network LLC", logo: "https://via.placeholder.com/150?text=Autoz" },
+          { name: "Toma", logo: "https://via.placeholder.com/150?text=Toma" },
+          { name: "DriveItAway", logo: "https://via.placeholder.com/150?text=DriveItAway" },
+          { name: "Free2Move", logo: "https://via.placeholder.com/150?text=Free2Move" }
+        ]
+      },
+      studio2: {
+        name: "Studio 2",
+        judges: [
+          { name: "Michael Cirillo", image: "https://via.placeholder.com/100?text=Michael" },
+          { name: "Ben Hadley", image: "https://via.placeholder.com/100?text=Ben" },
+          { name: "Patrick Abad", image: "https://via.placeholder.com/100?text=Patrick" },
+          { name: "Bill Cariss", image: "https://via.placeholder.com/100?text=Bill" }
+        ],
+        companies: [
+          { name: "Carmen", logo: "https://via.placeholder.com/150?text=Carmen" },
+          { name: "Lyteflo", logo: "https://via.placeholder.com/150?text=Lyteflo" },
+          { name: "Space Auto", logo: "https://via.placeholder.com/150?text=SpaceAuto" }
+        ]
+      },
+      studio3: {
+        name: "Studio 3",
+        judges: [
+          { name: "Paul J Daly", image: "https://via.placeholder.com/100?text=Paul" },
+          { name: "Elizabeth Shults", image: "https://via.placeholder.com/100?text=Elizabeth" },
+          { name: "Brian Donnelly", image: "https://via.placeholder.com/100?text=Brian" },
+          { name: "Tony Fowler", image: "https://via.placeholder.com/100?text=Tony" }
+        ],
+        companies: [
+          { name: "Fasten Rewards", logo: "https://via.placeholder.com/150?text=Fasten" },
+          { name: "Mia", logo: "https://via.placeholder.com/150?text=Mia" },
+          { name: "Autograph Analytics", logo: "https://via.placeholder.com/150?text=Autograph" }
+        ]
+      },
+      finals: {
+        name: "Finals",
+        judges: [
+          { name: "Kyle Mountsier", image: "https://via.placeholder.com/100?text=Kyle" },
+          { name: "Beth Hill", image: "https://via.placeholder.com/100?text=Beth" },
+          { name: "Chase Fraser", image: "https://via.placeholder.com/100?text=Chase" },
+          { name: "Bill Cariss", image: "https://via.placeholder.com/100?text=Bill" },
+          { name: "Brian Donnelly", image: "https://via.placeholder.com/100?text=Brian" }
+        ],
+        companies: []
+      }
+    };
+
+    // Sample teams (update as needed)
+    const initialTeams = ["Team A", "Team B", "Team C", "Team D"];
+
+    const App = () => {
+      const [selectedRoom, setSelectedRoom] = useState("studio1");
+      const [teams, setTeams] = useState(initialTeams);
+      const [scores, setScores] = useState({});
+      const [audienceVotes, setAudienceVotes] = useState({});
+
+      // Fetch scores from Firebase
+      useEffect(() => {
+        const scoresRef = db.ref("scores");
+        scoresRef.on("value", (snapshot) => {
+          setScores(snapshot.val() || {});
+        });
+
+        const votesRef = db.ref("audienceVotes");
+        votesRef.on("value", (snapshot) => {
+          setAudienceVotes(snapshot.val() || {});
+        });
+      }, []);
+
+      // Handle judge score submission
+      const handleJudgeSubmit = (team, judge, score) => {
+        db.ref(`scores/${selectedRoom}/${team}/${judge}`).set(parseInt(score));
+      };
+
+      // Handle audience vote submission
+      const handleAudienceSubmit = (team, vote) => {
+        const voteId = Date.now(); // Unique ID for each vote
+        db.ref(`audienceVotes/${selectedRoom}/${team}/${voteId}`).set(parseInt(vote));
+      };
+
+      // Calculate total scores
+      const calculateScores = () => {
+        const result = {};
+        teams.forEach((team) => {
+          const teamScores = scores[selectedRoom]?.[team] || {};
+          const judgeScores = Object.values(teamScores).map(Number);
+          const totalJudgeScore = judgeScores.reduce((sum, score) => sum + score, 0);
+
+          // Calculate audience score (average, weighted as one judge)
+          const votes = audienceVotes[selectedRoom]?.[team] || {};
+          const voteValues = Object.values(votes).map(Number);
+          const avgAudienceVote = voteValues.length
+            ? voteValues.reduce((sum, vote) => sum + vote, 0) / voteValues.length
+            : 0;
+
+          // Total score: judges + audience (weighted as one judge)
+          const totalScore = totalJudgeScore + avgAudienceVote;
+          result[team] = totalScore.toFixed(2);
+        });
+        return result;
+      };
+
+      const totalScores = calculateScores();
+
+      return (
+        <div className="min-h-screen bg-gray-100 p-4">
+          <h1 className="text-3xl font-bold text-center mb-6">Pitch Tank Competition</h1>
+
+          {/* Room Selector */}
+          <div className="mb-6">
+            <label className="mr-2">Select Room:</label>
+            <select
+              value={selectedRoom}
+              onChange={(e) => setSelectedRoom(e.target.value)}
+              className="p-2 border rounded"
+            >
+              {Object.keys(rooms).map((roomKey) => (
+                <option key={roomKey} value={roomKey}>
+                  {rooms[roomKey].name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Judges Section */}
+          <div className="mb-6">
+            <h2 className="text-2xl font-semibold mb-4">Judges</h2>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              {rooms[selectedRoom].judges.map((judge) => (
+                <div key={judge.name} className="text-center">
+                  <img
+                    src={judge.image}
+                    alt={judge.name}
+                    className="w-24 h-24 rounded-full mx-auto mb-2"
+                  />
+                  <p className="text-sm font-medium">{judge.name}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Companies Section */}
+          <div className="mb-6">
+            <h2 className="text-2xl font-semibold mb-4">Companies</h2>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              {rooms[selectedRoom].companies.map((company) => (
+                <div key={company.name} className="text-center">
+                  <img
+                    src={company.logo}
+                    alt={company.name}
+                    className="w-32 h-32 mx-auto mb-2"
+                  />
+                  <p className="text-sm font-medium">{company.name}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Judge Score Input */}
+          <div className="mb-6">
+            <h2 className="text-2xl font-semibold mb-4">Judge Scoring</h2>
+            {teams.map((team) => (
+              <div key={team} className="mb-4 p-4 bg-white rounded shadow">
+                <h3 className="text-lg font-medium">{team}</h3>
+                {rooms[selectedRoom].judges.map((judge) => (
+                  <div key={judge.name} className="mt-2">
+                    <label className="mr-2">{judge.name} Score (1–5):</label>
+                    <input
+                      type="number"
+                      min="1"
+                      max="5"
+                      className="p-1 border rounded w-16"
+                      onChange={(e) => handleJudgeSubmit(team, judge.name, e.target.value)}
+                    />
+                  </div>
+                ))}
+              </div>
+            ))}
+          </div>
+
+          {/* Audience Voting */}
+          <div className="mb-6">
+            <h2 className="text-2xl font-semibold mb-4">Audience Voting</h2>
+            {teams.map((team) => (
+              <div key={team} className="mb-4 p-4 bg-white rounded shadow">
+                <h3 className="text-lg font-medium">{team}</h3>
+                <label className="mr-2">Your Vote (1–5):</label>
+                <input
+                  type="number"
+                  min="1"
+                  max="5"
+                  className="p-1 border rounded w-16"
+                  onChange={(e) => handleAudienceSubmit(team, e.target.value)}
+                />
+              </div>
+            ))}
+          </div>
+
+          {/* Results Display */}
+          <div>
+            <h2 className="text-2xl font-semibold mb-4">Results</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {Object.entries(totalScores).map(([team, score]) => (
+                <div key={team} className="p-4 bg-blue-100 rounded shadow">
+                  <h3 className="text-lg font-medium">{team}</h3>
+                  <p className="text-2xl font-bold text-blue-600">{score}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      );
+    };
+
+    const root = ReactDOM.createRoot(document.getElementById("root"));
+    root.render(<App />);
+  </script>
+</body>
+</html>
