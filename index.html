@@ -6,25 +6,33 @@
   <title>Pitch Tank Competition</title>
   <script src="https://cdn.jsdelivr.net/npm/react@18.2.0/umd/react.development.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/react-dom@18.2.0/umd/react-dom.development.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/babel-standalone@7.22.9/babel.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/babel-standalone@7.23.2/babel.min.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body>
   <div id="root">Loading Pitch Tank Competition...</div>
+  <div id="error" style="color: red; padding: 20px;"></div>
+  <script>
+    console.log("Pitch Tank App: External scripts loaded");
+    if (!window.React || !window.ReactDOM || !window.Babel) {
+      document.getElementById("error").innerHTML = "Error: One or more scripts (React, ReactDOM, Babel) failed to load. Check console.";
+      console.error("Pitch Tank App: Missing React, ReactDOM, or Babel");
+    }
+  </script>
   <script type="text/babel">
-    console.log("Pitch Tank App: Starting script execution");
+    console.log("Pitch Tank App: Babel script starting");
 
     // Test basic React rendering
     try {
       const root = ReactDOM.createRoot(document.getElementById("root"));
       root.render(<h1>React is working!</h1>);
       console.log("Pitch Tank App: Initial React render successful");
-      root.render(null); // Clear test render
+      root.render(<div>Loading Pitch Tank Competition...</div>); // Reset
     } catch (error) {
       console.error("Pitch Tank App: Initial React render failed", error);
-      document.getElementById("root").innerHTML = "Error: React failed to load. Check console.";
+      document.getElementById("error").innerHTML = "Error: React failed to render. Check console.";
     }
 
     const { useState, useEffect } = React;
@@ -46,8 +54,8 @@
       db = firebase.database();
       console.log("Pitch Tank App: Firebase initialized");
     } catch (error) {
-      console.error(" societiesPitch Tank App: Firebase initialization failed", error);
-      document.getElementById("root").innerHTML += "<p>Warning: Firebase failed to initialize. App will run without database.</p>";
+      console.error("Pitch Tank App: Firebase initialization failed", error);
+      document.getElementById("error").innerHTML += "<p>Warning: Firebase failed to initialize. App will run without database.</p>";
     }
 
     // Room configurations
@@ -330,7 +338,7 @@
       console.log("Pitch Tank App: Full app rendered successfully");
     } catch (error) {
       console.error("Pitch Tank App: Full app render failed", error);
-      document.getElementById("root").innerHTML = "Error: App failed to render. Check console.";
+      document.getElementById("error").innerHTML = "Error: App failed to render. Check console.";
     }
   </script>
 </body>
