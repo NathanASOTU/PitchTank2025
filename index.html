@@ -12,8 +12,21 @@
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body>
-  <div id="root"></div>
+  <div id="root">Loading Pitch Tank Competition...</div>
   <script type="text/babel">
+    console.log("Pitch Tank App: Starting script execution");
+
+    // Test basic React rendering
+    try {
+      const root = ReactDOM.createRoot(document.getElementById("root"));
+      root.render(<h1>React is working!</h1>);
+      console.log("Pitch Tank App: Initial React render successful");
+      root.render(null); // Clear test render
+    } catch (error) {
+      console.error("Pitch Tank App: Initial React render failed", error);
+      document.getElementById("root").innerHTML = "Error: React failed to load. Check console.";
+    }
+
     const { useState, useEffect } = React;
 
     // Firebase configuration
@@ -27,8 +40,15 @@
     };
 
     // Initialize Firebase
-    firebase.initializeApp(firebaseConfig);
-    const db = firebase.database();
+    let db;
+    try {
+      firebase.initializeApp(firebaseConfig);
+      db = firebase.database();
+      console.log("Pitch Tank App: Firebase initialized");
+    } catch (error) {
+      console.error(" societiesPitch Tank App: Firebase initialization failed", error);
+      document.getElementById("root").innerHTML += "<p>Warning: Firebase failed to initialize. App will run without database.</p>";
+    }
 
     // Room configurations
     const rooms = {
@@ -88,49 +108,93 @@
       }
     };
 
+    // Error Boundary Component
+    class ErrorBoundary extends React.Component {
+      state = { hasError: false, error: null };
+      static getDerivedStateFromError(error) {
+        return { hasError: true, error };
+      }
+      render() {
+        if (this.state.hasError) {
+          return (
+            <div className="p-6 text-red-600">
+              <h1>Error: Something went wrong</h1>
+              <p>{this.state.error?.message}</p>
+            </div>
+          );
+        }
+        return this.props.children;
+      }
+    }
+
     const App = () => {
+      console.log("Pitch Tank App: App component initializing");
       const [selectedRoom, setSelectedRoom] = useState("studio1");
-      const [teams, setTeams] = useState(["Team 1", "Team 2", "Team 3"]); // Example teams
+      const [teams, setTeams] = useState(["Team 1", "Team 2", "Team 3"]);
       const [scores, setScores] = useState({});
       const [audienceVotes, setAudienceVotes] = useState({});
 
       // Fetch scores from Firebase
       useEffect(() => {
-        const scoresRef = db.ref("scores");
-        scoresRef.on("value", (snapshot) => {
-          setScores(snapshot.val() || {});
-        });
-        const votesRef = db.ref("audience_votes");
-        votesRef.on("value", (snapshot) => {
-          setAudienceVotes(snapshot.val() || {});
-        });
-        return () => {
-          scoresRef.off();
-          votesRef.off();
-        };
+        if (!db) return;
+        try {
+          const scoresRef = db.ref("scores");
+          scoresRef.on("value", (snapshot) => {
+            setScores(snapshot.val() || {});
+            console.log("Pitch Tank App: Scores fetched", snapshot.val());
+          });
+          const votesRef = db.ref("audience_votes");
+          votesRef.on("value", (snapshot) => {
+            setAudienceVotes(snapshot.val() || {});
+            console.log("Pitch Tank App: Audience votes fetched", snapshot.val());
+          });
+          return () => {
+            scoresRef.off();
+            votesRef.off();
+          };
+        } catch (error) {
+          console.error("Pitch Tank App: Error fetching data", error);
+        }
       }, []);
 
       // Handle judge score submission
       const handleJudgeSubmit = (team, judge, score) => {
-        db.ref(`scores/${selectedRoom}/${team}/${judge}`).set(parseInt(score));
+        if (!db) return;
+        try {
+          db.ref(`scores/${selectedRoom}/${team}/${judge}`).set(parseInt(score));
+          console.log(`Pitch Tank App: Score submitted for ${team} by ${judge}: ${score}`);
+        } catch (error) {
+          console.error("Pitch Tank App: Error submitting score", error);
+        }
       };
 
       // Handle audience vote submission
       const handleAudienceSubmit = (team, vote) => {
-        const voteId = Date.now(); // Unique ID for each vote
-        db.ref(`audience_votes/${selectedRoom}/${team}/${voteId}`).set(parseInt(vote));
+        if (!db) return;
+        try {
+          const voteId = Date.now();
+          db.ref(`audience_votes/${selectedRoom}/${team}/${voteId}`).set(parseInt(vote));
+          console.log(`Pitch Tank App: Audience vote submitted for ${team}: ${vote}`);
+        } catch (error) {
+          console.error("Pitch Tank App: Error submitting audience vote", error);
+        }
       };
 
       // Calculate total score for a team
       const calculateTeamScore = (team) => {
-        const judgeScores = scores[selectedRoom]?.[team] || {};
-        const judgeTotal = Object.values(judgeScores).reduce((sum, score) => sum + score, 0);
-        const audienceScores = audienceVotes[selectedRoom]?.[team] || {};
-        const audienceAvg = Object.values(audienceScores).length
-          ? Object.values(audienceScores).reduce((sum, vote) => sum + vote, 0) /
-            Object.values(audienceScores).length
-          : 0;
-        return (judgeTotal + audienceAvg).toFixed(2); // Audience weighted as one judge
+        try {
+          const judgeScores = scores[selectedRoom]?.[team] || {};
+          const judgeTotal = Object.values(judgeScores).reduce((sum, score) => sum + score, 0);
+          const audienceScores = audienceVotes[selectedRoom]?.[team] || {};
+          const audienceAvg = Object.values(audienceScores).length
+            ? Object.values(audienceScores).reduce((sum, vote) => sum + vote, 0) /
+              Object.values(audienceScores).length
+            : 0;
+          return (judgeTotal + audienceAvg).toFixed(2);
+        } catch (error) {
+          console.error("Pitch Tank App: Error calculating score", error);
+          return "0.00";
+        }
       };
 
       return (
@@ -256,8 +320,18 @@
       );
     };
 
-    const root = ReactDOM.createRoot(document.getElementById("root"));
-    root.render(<App />);
+    try {
+      const root = ReactDOM.createRoot(document.getElementById("root"));
+      root.render(
+        <ErrorBoundary>
+          <App />
+        </ErrorBoundary>
+      );
+      console.log("Pitch Tank App: Full app rendered successfully");
+    } catch (error) {
+      console.error("Pitch Tank App: Full app render failed", error);
+      document.getElementById("root").innerHTML = "Error: App failed to render. Check console.";
+    }
   </script>
 </body>
 </html>
