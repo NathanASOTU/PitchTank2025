@@ -4,11 +4,11 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Pitch Tank Competition</title>
-  <script src="https://cdn.jsdelivr.net/npm/react@18.2.0/umd/react.production.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/react-dom@18.2.0/umd/react-dom.production.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/react@18.2.0/umd/react.development.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/react-dom@18.2.0/umd/react-dom.development.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/babel-standalone@7.22.9/babel.min.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body>
@@ -27,7 +27,7 @@
     };
 
     // Initialize Firebase
-    const app = firebase.initializeApp(firebaseConfig);
+    firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
 
     // Room configurations
@@ -88,12 +88,9 @@
       }
     };
 
-    // Sample teams (update as needed)
-    const initialTeams = ["Team A", "Team B", "Team C", "Team D"];
-
     const App = () => {
       const [selectedRoom, setSelectedRoom] = useState("studio1");
-      const [teams, setTeams] = useState(initialTeams);
+      const [teams, setTeams] = useState(["Team 1", "Team 2", "Team 3"]); // Example teams
       const [scores, setScores] = useState({});
       const [audienceVotes, setAudienceVotes] = useState({});
 
@@ -103,11 +100,14 @@
         scoresRef.on("value", (snapshot) => {
           setScores(snapshot.val() || {});
         });
-
-        const votesRef = db.ref("audienceVotes");
+        const votesRef = db.ref("audience_votes");
         votesRef.on("value", (snapshot) => {
           setAudienceVotes(snapshot.val() || {});
         });
+        return () => {
+          scoresRef.off();
+          votesRef.off();
+        };
       }, []);
 
       // Handle judge score submission
@@ -118,44 +118,32 @@
       // Handle audience vote submission
       const handleAudienceSubmit = (team, vote) => {
         const voteId = Date.now(); // Unique ID for each vote
-        db.ref(`audienceVotes/${selectedRoom}/${team}/${voteId}`).set(parseInt(vote));
+        db.ref(`audience_votes/${selectedRoom}/${team}/${voteId}`).set(parseInt(vote));
       };
 
-      // Calculate total scores
-      const calculateScores = () => {
-        const result = {};
-        teams.forEach((team) => {
-          const teamScores = scores[selectedRoom]?.[team] || {};
-          const judgeScores = Object.values(teamScores).map(Number);
-          const totalJudgeScore = judgeScores.reduce((sum, score) => sum + score, 0);
-
-          // Calculate audience score (average, weighted as one judge)
-          const votes = audienceVotes[selectedRoom]?.[team] || {};
-          const voteValues = Object.values(votes).map(Number);
-          const avgAudienceVote = voteValues.length
-            ? voteValues.reduce((sum, vote) => sum + vote, 0) / voteValues.length
-            : 0;
-
-          // Total score: judges + audience (weighted as one judge)
-          const totalScore = totalJudgeScore + avgAudienceVote;
-          result[team] = totalScore.toFixed(2);
-        });
-        return result;
+      // Calculate total score for a team
+      const calculateTeamScore = (team) => {
+        const judgeScores = scores[selectedRoom]?.[team] || {};
+        const judgeTotal = Object.values(judgeScores).reduce((sum, score) => sum + score, 0);
+        const audienceScores = audienceVotes[selectedRoom]?.[team] || {};
+        const audienceAvg = Object.values(audienceScores).length
+          ? Object.values(audienceScores).reduce((sum, vote) => sum + vote, 0) /
+            Object.values(audienceScores).length
+          : 0;
+        return (judgeTotal + audienceAvg).toFixed(2); // Audience weighted as one judge
       };
-
-      const totalScores = calculateScores();
 
       return (
-        <div className="min-h-screen bg-gray-100 p-4">
+        <div className="min-h-screen bg-gray-100 p-6">
           <h1 className="text-3xl font-bold text-center mb-6">Pitch Tank Competition</h1>
 
           {/* Room Selector */}
-          <div className="mb-6">
+          <div className="mb-6 text-center">
             <label className="mr-2">Select Room:</label>
             <select
+              className="border rounded p-2"
               value={selectedRoom}
               onChange={(e) => setSelectedRoom(e.target.value)}
-              className="p-2 border rounded"
             >
               {Object.keys(rooms).map((roomKey) => (
                 <option key={roomKey} value={roomKey}>
@@ -165,56 +153,63 @@
             </select>
           </div>
 
-          {/* Judges Section */}
-          <div className="mb-6">
-            <h2 className="text-2xl font-semibold mb-4">Judges</h2>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              {rooms[selectedRoom].judges.map((judge) => (
-                <div key={judge.name} className="text-center">
-                  <img
-                    src={judge.image}
-                    alt={judge.name}
-                    className="w-24 h-24 rounded-full mx-auto mb-2"
-                  />
-                  <p className="text-sm font-medium">{judge.name}</p>
-                </div>
-              ))}
+          {/* Judges and Companies */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+            <div>
+              <h2 className="text-xl font-semibold mb-2">Judges</h2>
+              <div className="grid grid-cols-2 gap-4">
+                {rooms[selectedRoom].judges.map((judge) => (
+                  <div key={judge.name} className="text-center">
+                    <img
+                      src={judge.image}
+                      alt={judge.name}
+                      className="w-20 h-20 rounded-full mx-auto mb-2"
+                    />
+                    <p>{judge.name}</p>
+                  </div>
+                ))}
+              </div>
             </div>
-          </div>
-
-          {/* Companies Section */}
-          <div className="mb-6">
-            <h2 className="text-2xl font-semibold mb-4">Companies</h2>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              {rooms[selectedRoom].companies.map((company) => (
-                <div key={company.name} className="text-center">
-                  <img
-                    src={company.logo}
-                    alt={company.name}
-                    className="w-32 h-32 mx-auto mb-2"
-                  />
-                  <p className="text-sm font-medium">{company.name}</p>
-                </div>
-              ))}
+            <div>
+              <h2 className="text-xl font-semibold mb-2">Companies</h2>
+              <div className="grid grid-cols-2 gap-4">
+                {rooms[selectedRoom].companies.map((company) => (
+                  <div key={company.name} className="text-center">
+                    <img
+                      src={company.logo}
+                      alt={company.name}
+                      className="w-24 h-24 mx-auto mb-2"
+                    />
+                    <p>{company.name}</p>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
 
           {/* Judge Score Input */}
           <div className="mb-6">
-            <h2 className="text-2xl font-semibold mb-4">Judge Scoring</h2>
-            {teams.map((team) => (
-              <div key={team} className="mb-4 p-4 bg-white rounded shadow">
-                <h3 className="text-lg font-medium">{team}</h3>
-                {rooms[selectedRoom].judges.map((judge) => (
-                  <div key={judge.name} className="mt-2">
-                    <label className="mr-2">{judge.name} Score (1–5):</label>
-                    <input
-                      type="number"
-                      min="1"
-                      max="5"
-                      className="p-1 border rounded w-16"
+            <h2 className="text-xl font-semibold mb-2">Judge Scoring</h2>
+            {rooms[selectedRoom].judges.map((judge) => (
+              <div key={judge.name} className="mb-4">
+                <h3 className="font-medium">{judge.name}</h3>
+                {teams.map((team) => (
+                  <div key={team} className="flex items-center mb-2">
+                    <label className="w-32">{team}:</label>
+                    <select
+                      className="border rounded p-1"
                       onChange={(e) => handleJudgeSubmit(team, judge.name, e.target.value)}
-                    />
+                      defaultValue=""
+                    >
+                      <option value="" disabled>
+                        Select Score
+                      </option>
+                      {[1, 2, 3, 4, 5].map((score) => (
+                        <option key={score} value={score}>
+                          {score}
+                        </option>
+                      ))}
+                    </select>
                   </div>
                 ))}
               </div>
@@ -223,30 +218,36 @@
 
           {/* Audience Voting */}
           <div className="mb-6">
-            <h2 className="text-2xl font-semibold mb-4">Audience Voting</h2>
+            <h2 className="text-xl font-semibold mb-2">Audience Voting</h2>
             {teams.map((team) => (
-              <div key={team} className="mb-4 p-4 bg-white rounded shadow">
-                <h3 className="text-lg font-medium">{team}</h3>
-                <label className="mr-2">Your Vote (1–5):</label>
-                <input
-                  type="number"
-                  min="1"
-                  max="5"
-                  className="p-1 border rounded w-16"
+              <div key={team} className="flex items-center mb-2">
+                <label className="w-32">{team}:</label>
+                <select
+                  className="border rounded p-1"
                   onChange={(e) => handleAudienceSubmit(team, e.target.value)}
-                />
+                  defaultValue=""
+                >
+                  <option value="" disabled>
+                    Select Vote
+                  </option>
+                  {[1, 2, 3, 4, 5].map((vote) => (
+                    <option key={vote} value={vote}>
+                      {vote}
+                    </option>
+                  ))}
+                </select>
               </div>
             ))}
           </div>
 
-          {/* Results Display */}
+          {/* Results */}
           <div>
-            <h2 className="text-2xl font-semibold mb-4">Results</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {Object.entries(totalScores).map(([team, score]) => (
-                <div key={team} className="p-4 bg-blue-100 rounded shadow">
-                  <h3 className="text-lg font-medium">{team}</h3>
-                  <p className="text-2xl font-bold text-blue-600">{score}</p>
+            <h2 className="text-xl font-semibold mb-2">Results</h2>
+            <div className="bg-white p-4 rounded shadow">
+              {teams.map((team) => (
+                <div key={team} className="flex justify-between mb-2">
+                  <span>{team}</span>
+                  <span>Score: {calculateTeamScore(team)}</span>
                 </div>
               ))}
             </div>
