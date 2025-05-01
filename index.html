@@ -7,7 +7,11 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-database.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <style>
+    body {
+      background-color: #0e343c; /* Replace with your desired hex code or color name */
+    }
+  </style>
 </head>
 <body class="container mx-auto p-4">
   <h1 class="text-3xl font-bold mb-4">Pitch Tank Competition</h1>
@@ -20,8 +24,6 @@
       <option value="Final">Final</option>
     </select>
   </div>
-  <div id="judges" class="mb-6"></div>
-  <div id="companies" class="mb-6"></div>
   <div class="mb-6">
     <h2 class="text-2xl font-semibold">Judge Score Entry</h2>
     <form id="judgeForm" class="flex flex-col gap-4 max-w-md">
@@ -40,9 +42,9 @@
     </form>
   </div>
   <p id="error" class="text-red-500 hidden"></p>
-  <div>
+  <div id="results" class="mb-6">
     <h2 class="text-2xl font-semibold">Results</h2>
-    <canvas id="resultsChart" width="400" height="200"></canvas>
+    <div id="resultsContent"></div>
   </div>
 
   <script>
@@ -55,93 +57,100 @@
       appId: "1:397957008743:web:919855d25d5e739fb8f3c2"
     };
 
-    firebase.initializeApp(firebaseConfig);
-    const db = firebase.database();
+    let db;
+    try {
+      firebase.initializeApp(firebaseConfig);
+      db = firebase.database();
+      console.log('Firebase initialized');
+    } catch (error) {
+      console.error('Firebase initialization failed:', error);
+    }
 
     const rooms = {
       'Studio 1': {
         judges: [
-          { name: 'Beth Hill', img: 'https://via.placeholder.com/100?text=Beth' },
-          { name: 'Christopher Twohig', img: 'https://via.placeholder.com/100?text=Christopher' },
-          { name: 'Chase Fraser', img: 'https://via.placeholder.com/100?text=Chase' }
+          { name: 'Beth Hill', img: 'https://cdn.prod.website-files.com/62ab9f4fc865d02bc0ff852c/67f03c80e0dffce90233269e_Beth%20Hill%20700x700.avif' },
+          { name: 'Christopher Twohig', img: 'https://cdn.prod.website-files.com/62ab9f4fc865d02bc0ff852c/67efd4b4f6945bc7d7441b14_Christopher%20Twohig%20500x500%20ACON%2025%20Speaker%20Web.avif' },
+          { name: 'Chase Fraser', img: 'https://cdn.prod.website-files.com/62ab9f4fc865d02bc0ff852c/67e5a0e035fe17f9510fa28a_Chase%20Fraser%20ACON%2025%20500x500%20Speaker%20Web.avif' }
         ],
         companies: [
-          { name: 'Autoz Network LLC', logo: 'https://via.placeholder.com/150?text=Autoz' },
-          { name: 'Toma', logo: 'https://via.placeholder.com/150?text=Toma' },
-          { name: 'DriveItAway', logo: 'https://via.placeholder.com/150?text=DriveItAway' },
-        ],
-        teams: ['Team A', 'Team B', 'Team C']
+          { name: 'Autoz Network LLC', logo: 'https://cdn.prod.website-files.com/62ab9f4fc865d02bc0ff852c/68079871eb04b08e6cbe0055_autozNetwork%20ASOTUCON%2025%20web%20logo.png' },
+          { name: 'Toma', logo: 'https://cdn.prod.website-files.com/62ab9f4fc865d02bc0ff852c/67c07094a3a9bbab71b21dd2_Toma%20Ai%20Collaborator%20Web.avif' },
+          { name: 'DriveItAway', logo: 'https://www.driveitaway.com/wp-content/uploads/2022/09/driveitaway-logo-even-1.png' }
+        ]
       },
       'Studio 2': {
         judges: [
-          { name: 'Ben Hadley', img: 'https://via.placeholder.com/100?text=Ben' },
-          { name: 'Patrick Abad', img: 'https://via.placeholder.com/100?text=Patrick' },
-          { name: 'Bill Cariss', img: 'https://via.placeholder.com/100?text=Bill' }
+          { name: 'Ben Hadley', img: 'https://cdn.prod.website-files.com/62ab9f4fc865d02bc0ff852c/68010ccdecfbbdee01b7d8c3_Ben%20Hadley%20500x500%20ACON%2025%20Speaker%20Web.png' },
+          { name: 'Patrick Abad', img: 'https://cdn.prod.website-files.com/62ab9f4fc865d02bc0ff852c/67ea9d515d75177f491eec27_Patrick%20Abad%20ACON%2025%20500x500%20Speaker%20Web.avif' },
+          { name: 'Bill Cariss', img: 'https://cdn.prod.website-files.com/62ab9f4fc865d02bc0ff852c/680a856209053b8bbc6e8c20_Bill%20Cariss%20500x500%20ACON%2025%20Speaker%20Web.png' }
         ],
         companies: [
-          { name: 'Carmen', logo: 'https://via.placeholder.com/150?text=Carmen' },
-          { name: 'Lyteflo', logo: 'https://via.placeholder.com/150?text=Lyteflo' },
-          { name: 'Space Auto', logo: 'https://via.placeholder.com/150?text=SpaceAuto' }
-        ],
-        teams: ['Team D', 'Team E', 'Team F']
+          { name: 'Carmen', logo: 'https://carmen.sg/wp-content/uploads/2022/08/logo2_retina.png' },
+          { name: 'Lyteflo', logo: 'https://framerusercontent.com/images/RZqiXUxXc3QWsMbs8o5L4S2cDc.png' },
+          { name: 'Space Auto', logo: 'https://cdn.prod.website-files.com/62ab9f4fc865d02bc0ff852c/67bf394ea8301ca213a9965c_SpaceAuto%20ASOTUCON%2025.avif' }
+        ]
       },
       'Studio 3': {
         judges: [
-          { name: 'Elizabeth Shults', img: 'https://via.placeholder.com/100?text=Elizabeth' },
-          { name: 'Brian Donnelly', img: 'https://via.placeholder.com/100?text=Brian' },
-          { name: 'Tony Fowler', img: 'https://via.placeholder.com/100?text=Tony' }
+          { name: 'Elizabeth Shults', img: 'https://cdn.prod.website-files.com/62ab9f4fc865d02bc0ff852c/6806488283b7af14cc4e80c3_Elizabeth%20Shults%20500X500.png' },
+          { name: 'Brian Donnelly', img: 'https://cdn.prod.website-files.com/62ab9f4fc865d02bc0ff852c/67ec4eef9c6847853da2cd30_Brian%20Donnelly%20500x500%20ACON%2025%20Speaker%20Web.avif' },
+          { name: 'Tony Fowler', img: 'https://cdn.prod.website-files.com/62ab9f4fc865d02bc0ff852c/67f3d494ec20f7efae77bd41_Tony%20Fowler%20500X500.avif' }
         ],
         companies: [
-          { name: 'Fasten Rewards', logo: 'https://via.placeholder.com/150?text=Fasten' },
-          { name: 'Mia', logo: 'https://via.placeholder.com/150?text=Mia' },
-          { name: 'Autograph Analytics', logo: 'https://via.placeholder.com/150?text=Autograph' }
-        ],
-        teams: ['Team G', 'Team H', 'Team I']
+          { name: 'Fasten Rewards', logo: 'https://cdn.prod.website-files.com/62ab9f4fc865d02bc0ff852c/68090d6b8276aa135eb57568_Fasten%20Rewards%20ASOTUCON%2025.png' },
+          { name: 'Mia', logo: 'https://cdn.prod.website-files.com/62ab9f4fc865d02bc0ff852c/67b62d9ea2ed418269ca0a16_Mia%20Web%20Logo%20ASOTUCON%2025.avif' },
+          { name: 'Autograph Analytics', logo: 'https://www.autographanalytics.com/wp-content/uploads/2020/07/Autograph_Logo_Tagline_White.png' }
+        ]
       },
       'Final': {
         judges: [
-          { name: 'Kyle Mountsier', img: 'https://via.placeholder.com/100?text=Kyle' },
-          { name: 'Beth Hill', img: 'https://via.placeholder.com/100?text=Beth' },
-          { name: 'Chase Fraser', img: 'https://via.placeholder.com/100?text=Chase' },
-          { name: 'Bill Cariss', img: 'https://via.placeholder.com/100?text=Bill' },
-          { name: 'Brian Donnelly', img: 'https://via.placeholder.com/100?text=Brian' }
+          { name: 'Beth Hill', img: 'https://cdn.prod.website-files.com/62ab9f4fc865d02bc0ff852c/67f03c80e0dffce90233269e_Beth%20Hill%20700x700.avif' },
+          { name: 'Chase Fraser', img: 'https://cdn.prod.website-files.com/62ab9f4fc865d02bc0ff852c/67e5a0e035fe17f9510fa28a_Chase%20Fraser%20ACON%2025%20500x500%20Speaker%20Web.avif' },
+          { name: 'Bill Cariss', img: 'https://cdn.prod.website-files.com/62ab9f4fc865d02bc0ff852c/680a856209053b8bbc6e8c20_Bill%20Cariss%20500x500%20ACON%2025%20Speaker%20Web.png' },
+          { name: 'Brian Donnelly', img: 'https://cdn.prod.website-files.com/62ab9f4fc865d02bc0ff852c/67ec4eef9c6847853da2cd30_Brian%20Donnelly%20500x500%20ACON%2025%20Speaker%20Web.avif' }
         ],
-        companies: [],
-        teams: ['Finalist 1', 'Finalist 2', 'Finalist 3']
+        companies: [
+          { name: 'Finalist 1', logo: 'https://via.placeholder.com/150?text=Finalist1' },
+          { name: 'Finalist 2', logo: 'https://via.placeholder.com/150?text=Finalist2' },
+          { name: 'Finalist 3', logo: 'https://via.placeholder.com/150?text=Finalist3' }
+        ]
       }
     };
 
+    // Use companies as teams for scoring
+    Object.keys(rooms).forEach(room => {
+      rooms[room].teams = rooms[room].companies.map(company => company.name);
+    });
+
     let scores = {};
-    let myChart;
 
     function renderRoom() {
       const room = document.getElementById('roomSelect').value;
-      const judgesDiv = document.getElementById('judges');
-      const companiesDiv = document.getElementById('companies');
+      console.log('Rendering room:', room);
       const judgeSelect = document.getElementById('judgeName');
       const teamSelect = document.getElementById('teamName');
       const audienceTeamSelect = document.getElementById('audienceTeamName');
 
-      judgesDiv.innerHTML = '<h2 class="text-2xl font-semibold">Judges</h2><div class="flex flex-wrap gap-4">' +
-        rooms[room].judges.map(judge =>
-          `<div class="text-center"><img src="${judge.img}" alt="${judge.name}" class="w-24 h-24 rounded-full mx-auto"><p>${judge.name}</p></div>`
-        ).join('') + '</div>';
-
-      companiesDiv.innerHTML = '<h2 class="text-2xl font-semibold">Companies</h2><div class="flex flex-wrap gap-4">' +
-        rooms[room].companies.map(company =>
-          `<div class="text-center"><img src="${company.logo}" alt="${company.name}" class="w-32 h-32 mx-auto"><p>${company.name}</p></div>`
-        ).join('') + '</div>';
+      if (!rooms[room]) {
+        console.error('Invalid room:', room);
+        showError('Invalid room selected');
+        return;
+      }
 
       judgeSelect.innerHTML = '<option value="">Select Judge</option>' +
         rooms[room].judges.map(judge => `<option value="${judge.name}">${judge.name}</option>`).join('');
+      console.log('Judge options populated:', judgeSelect.innerHTML);
 
-      teamSelect.innerHTML = '<option value="">Select Team</option>' +
+      teamSelect.innerHTML = '<option value="">Select Company</option>' +
         rooms[room].teams.map(team => `<option value="${team}">${team}</option>`).join('');
+      console.log('Team options populated:', teamSelect.innerHTML);
 
-      audienceTeamSelect.innerHTML = '<option value="">Select Team</option>' +
+      audienceTeamSelect.innerHTML = '<option value="">Select Company</option>' +
         rooms[room].teams.map(team => `<option value="${team}">${team}</option>`).join('');
+      console.log('Audience team options populated:', audienceTeamSelect.innerHTML);
 
-      renderChart();
+      renderResults();
     }
 
     function showError(msg) {
@@ -161,10 +170,14 @@
       if (!team || !judge || !score) return showError('Please fill all fields');
       if (score < 1 || score > 5) return showError('Score must be between 1 and 5');
 
-      db.ref('scores').push({ room, team, judge, score, timestamp: Date.now() });
-      document.getElementById('judgeForm').reset();
-      document.getElementById('teamName').value = '';
-      document.getElementById('judgeName').value = '';
+      if (db) {
+        db.ref('scores').push({ room, team, judge, score, timestamp: Date.now() });
+        document.getElementById('judgeForm').reset();
+        document.getElementById('teamName').value = '';
+        document.getElementById('judgeName').value = '';
+      } else {
+        showError('Database not available');
+      }
     });
 
     document.getElementById('audienceForm').addEventListener('submit', (e) => {
@@ -176,58 +189,87 @@
       if (!team || !score) return showError('Please fill all fields');
       if (score < 1 || score > 5) return showError('Score must be between 1 and 5');
 
-      db.ref('scores').push({ room, team, judge: 'Audience', score, timestamp: Date.now() });
-      document.getElementById('audienceForm').reset();
-      document.getElementById('audienceTeamName').value = '';
+      if (db) {
+        db.ref('scores').push({ room, team, judge: 'Audience', score, timestamp: Date.now() });
+        document.getElementById('audienceForm').reset();
+        document.getElementById('audienceTeamName').value = '';
+      } else {
+        showError('Database not available');
+      }
     });
 
-    db.ref('scores').on('value', (snapshot) => {
-      scores = snapshot.val() || {};
-      renderChart();
-    });
-
-    function renderChart() {
-      const room = document.getElementById('roomSelect').value;
-      const teamScores = {};
-      Object.values(scores).forEach(({ room: r, team, judge, score }) => {
-        if (r !== room) return;
-        if (!teamScores[team]) teamScores[team] = { judges: [], audience: null };
-        if (judge === 'Audience') teamScores[team].audience = score;
-        else teamScores[team].judges.push(score);
-      });
-
-      const aggregated = {};
-      Object.keys(teamScores).forEach(team => {
-        const { judges, audience } = teamScores[team];
-        const judgeCount = rooms[room].judges.length;
-        const judgeAvg = judges.length ? judges.reduce((sum, s) => sum + s, 0) / judges.length : 0;
-        const audienceWeight = audience ? audience / judgeCount : 0;
-        aggregated[team] = judgeAvg + audienceWeight;
-      });
-
-      const ctx = document.getElementById('resultsChart').getContext('2d');
-      if (myChart) myChart.destroy();
-      myChart = new Chart(ctx, {
-        type: 'bar',
-        data: {
-          labels: Object.keys(aggregated),
-          datasets: [{
-            label: 'Team Scores',
-            data: Object.values(aggregated),
-            backgroundColor: 'rgba(75, 192, 192, 0.6)',
-            borderColor: 'rgba(75, 192, 192, 1)',
-            borderWidth: 1
-          }]
-        },
-        options: {
-          scales: { y: { beginAtZero: true, max: 10 } },
-          plugins: { title: { display: true, text: `Scores for ${room}` } }
-        }
+    if (db) {
+      db.ref('scores').on('value', (snapshot) => {
+        scores = snapshot.val() || {};
+        console.log('Scores updated:', scores);
+        renderResults();
       });
     }
 
-    document.getElementById('roomSelect').addEventListener('change', renderRoom);
-    renderRoom();
+    function renderResults() {
+      const room = document.getElementById('roomSelect').value;
+      const resultsContent = document.getElementById('resultsContent');
+      if (!rooms[room]) {
+        resultsContent.innerHTML = '<p class="text-gray-500">Invalid room selected</p>';
+        return;
+      }
+
+      const teamScores = {};
+      Object.values(scores).forEach(({ room: r, team, judge, score }) => {
+        if (r !== room) return;
+        if (!teamScores[team]) teamScores[team] = { judges: {}, audience: null };
+        if (judge === 'Audience') teamScores[team].audience = score;
+        else teamScores[team].judges[judge] = score;
+      });
+
+      let html = '';
+      rooms[room].companies.forEach(company => {
+        const scores = teamScores[company.name] || { judges: {}, audience: null };
+        const judgeCount = rooms[room].judges.length;
+        const judgeScores = rooms[room].judges.map(judge => {
+          const score = scores.judges[judge.name] || 'N/A';
+          return { judge, score };
+        });
+        const audienceScore = scores.audience || 'N/A';
+        const judgeAvg = Object.values(scores.judges).length
+          ? Object.values(scores.judges).reduce((sum, s) => sum + s, 0) / Object.values(scores.judges).length
+          : 0;
+        const audienceWeight = scores.audience ? scores.audience / judgeCount : 0;
+        const finalTally = (judgeAvg + audienceWeight).toFixed(2);
+
+        html += `
+          <div class="mb-8">
+            <div class="text-center mb-4">
+              <img src="${company.logo}" alt="${company.name}" class="w-48 h-48 mx-auto">
+              <h3 class="text-xl font-semibold">${company.name}</h3>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              ${judgeScores.map(({ judge, score }) => `
+                <div class="flex items-center">
+                  <img src="${judge.img}" alt="${judge.name}" class="w-12 h-12 rounded-full mr-4">
+                  <p>${judge.name}: ${score}</p>
+                </div>
+              `).join('')}
+              <div class="flex items-center">
+                <p>Audience: ${audienceScore}</p>
+              </div>
+            </div>
+            <p class="text-lg font-bold mt-4">Final Tally: ${finalTally}</p>
+          </div>
+        `;
+      });
+
+      resultsContent.innerHTML = html || '<p class="text-gray-500">No scores submitted yet</p>';
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      console.log('DOM loaded, rendering initial room');
+      document.getElementById('roomSelect').addEventListener('change', () => {
+        console.log('Room changed to:', document.getElementById('roomSelect').value);
+        renderRoom();
+      });
+      renderRoom();
+    });
   </script>
 </body>
 </html>
