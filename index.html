@@ -4,40 +4,48 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Pitch Tank Competition</title>
-  <script src="https://cdn.jsdelivr.net/npm/react@18.2.0/umd/react.development.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/react-dom@18.2.0/umd/react-dom.development.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/babel-standalone@7.23.2/babel.min.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
   <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-database.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 </head>
-<body>
-  <div id="root">Loading Pitch Tank Competition...</div>
-  <div id="error" style="color: red; padding: 20px;"></div>
+<body class="container mx-auto p-4">
+  <h1 class="text-3xl font-bold mb-4">Pitch Tank Competition</h1>
+  <div class="mb-4">
+    <label class="mr-2">Select Room:</label>
+    <select id="roomSelect" class="border p-2 rounded">
+      <option value="Studio 1">Studio 1</option>
+      <option value="Studio 2">Studio 2</option>
+      <option value="Studio 3">Studio 3</option>
+      <option value="Final">Final</option>
+    </select>
+  </div>
+  <div id="judges" class="mb-6"></div>
+  <div id="companies" class="mb-6"></div>
+  <div class="mb-6">
+    <h2 class="text-2xl font-semibold">Judge Score Entry</h2>
+    <form id="judgeForm" class="flex flex-col gap-4 max-w-md">
+      <select id="teamName" class="border p-2 rounded"></select>
+      <select id="judgeName" class="border p-2 rounded"></select>
+      <input id="score" type="number" step="0.1" min="1" max="5" placeholder="Score (1-5)" class="border p-2 rounded">
+      <button type="submit" class="bg-blue-500 text-white p-2 rounded">Submit Score</button>
+    </form>
+  </div>
+  <div class="mb-6">
+    <h2 class="text-2xl font-semibold">Audience Score Entry</h2>
+    <form id="audienceForm" class="flex flex-col gap-4 max-w-md">
+      <select id="audienceTeamName" class="border p-2 rounded"></select>
+      <input id="audienceScore" type="number" step="0.1" min="1" max="5" placeholder="Audience Score (1-5)" class="border p-2 rounded">
+      <button type="submit" class="bg-green-500 text-white p-2 rounded">Submit Audience Score</button>
+    </form>
+  </div>
+  <p id="error" class="text-red-500 hidden"></p>
+  <div>
+    <h2 class="text-2xl font-semibold">Results</h2>
+    <canvas id="resultsChart" width="400" height="200"></canvas>
+  </div>
+
   <script>
-    console.log("Pitch Tank App: External scripts loaded");
-    if (!window.React || !window.ReactDOM || !window.Babel) {
-      document.getElementById("error").innerHTML = "Error: One or more scripts (React, ReactDOM, Babel) failed to load. Check console.";
-      console.error("Pitch Tank App: Missing React, ReactDOM, or Babel");
-    }
-  </script>
-  <script type="text/babel">
-    console.log("Pitch Tank App: Babel script starting");
-
-    // Test basic React rendering
-    try {
-      const root = ReactDOM.createRoot(document.getElementById("root"));
-      root.render(<h1>React is working!</h1>);
-      console.log("Pitch Tank App: Initial React render successful");
-      root.render(<div>Loading Pitch Tank Competition...</div>); // Reset
-    } catch (error) {
-      console.error("Pitch Tank App: Initial React render failed", error);
-      document.getElementById("error").innerHTML = "Error: React failed to render. Check console.";
-    }
-
-    const { useState, useEffect } = React;
-
-    // Firebase configuration
     const firebaseConfig = {
       apiKey: "AIzaSyDRwVHh0r-hpb1Wfa6YdSj4cZRWx9Wl0pM",
       authDomain: "asotu-con-pitch-tank.firebaseapp.com",
@@ -47,299 +55,179 @@
       appId: "1:397957008743:web:919855d25d5e739fb8f3c2"
     };
 
-    // Initialize Firebase
-    let db;
-    try {
-      firebase.initializeApp(firebaseConfig);
-      db = firebase.database();
-      console.log("Pitch Tank App: Firebase initialized");
-    } catch (error) {
-      console.error("Pitch Tank App: Firebase initialization failed", error);
-      document.getElementById("error").innerHTML += "<p>Warning: Firebase failed to initialize. App will run without database.</p>";
-    }
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
 
-    // Room configurations
     const rooms = {
-      studio1: {
-        name: "Studio 1",
+      'Studio 1': {
         judges: [
-          { name: "Kyle Mountsier", image: "https://via.placeholder.com/100?text=Kyle" },
-          { name: "Beth Hill", image: "https://via.placeholder.com/100?text=Beth" },
-          { name: "Christopher Twohig", image: "https://via.placeholder.com/100?text=Christopher" },
-          { name: "Chase Fraser", image: "https://via.placeholder.com/100?text=Chase" }
+          { name: 'Beth Hill', img: 'https://via.placeholder.com/100?text=Beth' },
+          { name: 'Christopher Twohig', img: 'https://via.placeholder.com/100?text=Christopher' },
+          { name: 'Chase Fraser', img: 'https://via.placeholder.com/100?text=Chase' }
         ],
         companies: [
-          { name: "Autoz Network LLC", logo: "https://via.placeholder.com/150?text=Autoz" },
-          { name: "Toma", logo: "https://via.placeholder.com/150?text=Toma" },
-          { name: "DriveItAway", logo: "https://via.placeholder.com/150?text=DriveItAway" },
-          { name: "Free2Move", logo: "https://via.placeholder.com/150?text=Free2Move" }
-        ]
+          { name: 'Autoz Network LLC', logo: 'https://via.placeholder.com/150?text=Autoz' },
+          { name: 'Toma', logo: 'https://via.placeholder.com/150?text=Toma' },
+          { name: 'DriveItAway', logo: 'https://via.placeholder.com/150?text=DriveItAway' },
+        ],
+        teams: ['Team A', 'Team B', 'Team C']
       },
-      studio2: {
-        name: "Studio 2",
+      'Studio 2': {
         judges: [
-          { name: "Michael Cirillo", image: "https://via.placeholder.com/100?text=Michael" },
-          { name: "Ben Hadley", image: "https://via.placeholder.com/100?text=Ben" },
-          { name: "Patrick Abad", image: "https://via.placeholder.com/100?text=Patrick" },
-          { name: "Bill Cariss", image: "https://via.placeholder.com/100?text=Bill" }
+          { name: 'Ben Hadley', img: 'https://via.placeholder.com/100?text=Ben' },
+          { name: 'Patrick Abad', img: 'https://via.placeholder.com/100?text=Patrick' },
+          { name: 'Bill Cariss', img: 'https://via.placeholder.com/100?text=Bill' }
         ],
         companies: [
-          { name: "Carmen", logo: "https://via.placeholder.com/150?text=Carmen" },
-          { name: "Lyteflo", logo: "https://via.placeholder.com/150?text=Lyteflo" },
-          { name: "Space Auto", logo: "https://via.placeholder.com/150?text=SpaceAuto" }
-        ]
+          { name: 'Carmen', logo: 'https://via.placeholder.com/150?text=Carmen' },
+          { name: 'Lyteflo', logo: 'https://via.placeholder.com/150?text=Lyteflo' },
+          { name: 'Space Auto', logo: 'https://via.placeholder.com/150?text=SpaceAuto' }
+        ],
+        teams: ['Team D', 'Team E', 'Team F']
       },
-      studio3: {
-        name: "Studio 3",
+      'Studio 3': {
         judges: [
-          { name: "Paul J Daly", image: "https://via.placeholder.com/100?text=Paul" },
-          { name: "Elizabeth Shults", image: "https://via.placeholder.com/100?text=Elizabeth" },
-          { name: "Brian Donnelly", image: "https://via.placeholder.com/100?text=Brian" },
-          { name: "Tony Fowler", image: "https://via.placeholder.com/100?text=Tony" }
+          { name: 'Elizabeth Shults', img: 'https://via.placeholder.com/100?text=Elizabeth' },
+          { name: 'Brian Donnelly', img: 'https://via.placeholder.com/100?text=Brian' },
+          { name: 'Tony Fowler', img: 'https://via.placeholder.com/100?text=Tony' }
         ],
         companies: [
-          { name: "Fasten Rewards", logo: "https://via.placeholder.com/150?text=Fasten" },
-          { name: "Mia", logo: "https://via.placeholder.com/150?text=Mia" },
-          { name: "Autograph Analytics", logo: "https://via.placeholder.com/150?text=Autograph" }
-        ]
-      },
-      finals: {
-        name: "Finals",
-        judges: [
-          { name: "Kyle Mountsier", image: "https://via.placeholder.com/100?text=Kyle" },
-          { name: "Beth Hill", image: "https://via.placeholder.com/100?text=Beth" },
-          { name: "Chase Fraser", image: "https://via.placeholder.com/100?text=Chase" },
-          { name: "Bill Cariss", image: "https://via.placeholder.com/100?text=Bill" },
-          { name: "Brian Donnelly", image: "https://via.placeholder.com/100?text=Brian" }
+          { name: 'Fasten Rewards', logo: 'https://via.placeholder.com/150?text=Fasten' },
+          { name: 'Mia', logo: 'https://via.placeholder.com/150?text=Mia' },
+          { name: 'Autograph Analytics', logo: 'https://via.placeholder.com/150?text=Autograph' }
         ],
-        companies: []
+        teams: ['Team G', 'Team H', 'Team I']
+      },
+      'Final': {
+        judges: [
+          { name: 'Kyle Mountsier', img: 'https://via.placeholder.com/100?text=Kyle' },
+          { name: 'Beth Hill', img: 'https://via.placeholder.com/100?text=Beth' },
+          { name: 'Chase Fraser', img: 'https://via.placeholder.com/100?text=Chase' },
+          { name: 'Bill Cariss', img: 'https://via.placeholder.com/100?text=Bill' },
+          { name: 'Brian Donnelly', img: 'https://via.placeholder.com/100?text=Brian' }
+        ],
+        companies: [],
+        teams: ['Finalist 1', 'Finalist 2', 'Finalist 3']
       }
     };
 
-    // Error Boundary Component
-    class ErrorBoundary extends React.Component {
-      state = { hasError: false, error: null };
-      static getDerivedStateFromError(error) {
-        return { hasError: true, error };
-      }
-      render() {
-        if (this.state.hasError) {
-          return (
-            <div className="p-6 text-red-600">
-              <h1>Error: Something went wrong</h1>
-              <p>{this.state.error?.message}</p>
-            </div>
-          );
-        }
-        return this.props.children;
-      }
+    let scores = {};
+    let myChart;
+
+    function renderRoom() {
+      const room = document.getElementById('roomSelect').value;
+      const judgesDiv = document.getElementById('judges');
+      const companiesDiv = document.getElementById('companies');
+      const judgeSelect = document.getElementById('judgeName');
+      const teamSelect = document.getElementById('teamName');
+      const audienceTeamSelect = document.getElementById('audienceTeamName');
+
+      judgesDiv.innerHTML = '<h2 class="text-2xl font-semibold">Judges</h2><div class="flex flex-wrap gap-4">' +
+        rooms[room].judges.map(judge =>
+          `<div class="text-center"><img src="${judge.img}" alt="${judge.name}" class="w-24 h-24 rounded-full mx-auto"><p>${judge.name}</p></div>`
+        ).join('') + '</div>';
+
+      companiesDiv.innerHTML = '<h2 class="text-2xl font-semibold">Companies</h2><div class="flex flex-wrap gap-4">' +
+        rooms[room].companies.map(company =>
+          `<div class="text-center"><img src="${company.logo}" alt="${company.name}" class="w-32 h-32 mx-auto"><p>${company.name}</p></div>`
+        ).join('') + '</div>';
+
+      judgeSelect.innerHTML = '<option value="">Select Judge</option>' +
+        rooms[room].judges.map(judge => `<option value="${judge.name}">${judge.name}</option>`).join('');
+
+      teamSelect.innerHTML = '<option value="">Select Team</option>' +
+        rooms[room].teams.map(team => `<option value="${team}">${team}</option>`).join('');
+
+      audienceTeamSelect.innerHTML = '<option value="">Select Team</option>' +
+        rooms[room].teams.map(team => `<option value="${team}">${team}</option>`).join('');
+
+      renderChart();
     }
 
-    const App = () => {
-      console.log("Pitch Tank App: App component initializing");
-      const [selectedRoom, setSelectedRoom] = useState("studio1");
-      const [teams, setTeams] = useState(["Team 1", "Team 2", "Team 3"]);
-      const [scores, setScores] = useState({});
-      const [audienceVotes, setAudienceVotes] = useState({});
-
-      // Fetch scores from Firebase
-      useEffect(() => {
-        if (!db) return;
-        try {
-          const scoresRef = db.ref("scores");
-          scoresRef.on("value", (snapshot) => {
-            setScores(snapshot.val() || {});
-            console.log("Pitch Tank App: Scores fetched", snapshot.val());
-          });
-          const votesRef = db.ref("audience_votes");
-          votesRef.on("value", (snapshot) => {
-            setAudienceVotes(snapshot.val() || {});
-            console.log("Pitch Tank App: Audience votes fetched", snapshot.val());
-          });
-          return () => {
-            scoresRef.off();
-            votesRef.off();
-          };
-        } catch (error) {
-          console.error("Pitch Tank App: Error fetching data", error);
-        }
-      }, []);
-
-      // Handle judge score submission
-      const handleJudgeSubmit = (team, judge, score) => {
-        if (!db) return;
-        try {
-          db.ref(`scores/${selectedRoom}/${team}/${judge}`).set(parseInt(score));
-          console.log(`Pitch Tank App: Score submitted for ${team} by ${judge}: ${score}`);
-        } catch (error) {
-          console.error("Pitch Tank App: Error submitting score", error);
-        }
-      };
-
-      // Handle audience vote submission
-      const handleAudienceSubmit = (team, vote) => {
-        if (!db) return;
-        try {
-          const voteId = Date.now();
-          db.ref(`audience_votes/${selectedRoom}/${team}/${voteId}`).set(parseInt(vote));
-          console.log(`Pitch Tank App: Audience vote submitted for ${team}: ${vote}`);
-        } catch (error) {
-          console.error("Pitch Tank App: Error submitting audience vote", error);
-        }
-      };
-
-      // Calculate total score for a team
-      const calculateTeamScore = (team) => {
-        try {
-          const judgeScores = scores[selectedRoom]?.[team] || {};
-          const judgeTotal = Object.values(judgeScores).reduce((sum, score) => sum + score, 0);
-          const audienceScores = audienceVotes[selectedRoom]?.[team] || {};
-          const audienceAvg = Object.values(audienceScores).length
-            ? Object.values(audienceScores).reduce((sum, vote) => sum + vote, 0) /
-              Object.values(audienceScores).length
-            : 0;
-          return (judgeTotal + audienceAvg).toFixed(2);
-        } catch (error) {
-          console.error("Pitch Tank App: Error calculating score", error);
-          return "0.00";
-        }
-      };
-
-      return (
-        <div className="min-h-screen bg-gray-100 p-6">
-          <h1 className="text-3xl font-bold text-center mb-6">Pitch Tank Competition</h1>
-
-          {/* Room Selector */}
-          <div className="mb-6 text-center">
-            <label className="mr-2">Select Room:</label>
-            <select
-              className="border rounded p-2"
-              value={selectedRoom}
-              onChange={(e) => setSelectedRoom(e.target.value)}
-            >
-              {Object.keys(rooms).map((roomKey) => (
-                <option key={roomKey} value={roomKey}>
-                  {rooms[roomKey].name}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {/* Judges and Companies */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-            <div>
-              <h2 className="text-xl font-semibold mb-2">Judges</h2>
-              <div className="grid grid-cols-2 gap-4">
-                {rooms[selectedRoom].judges.map((judge) => (
-                  <div key={judge.name} className="text-center">
-                    <img
-                      src={judge.image}
-                      alt={judge.name}
-                      className="w-20 h-20 rounded-full mx-auto mb-2"
-                    />
-                    <p>{judge.name}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-            <div>
-              <h2 className="text-xl font-semibold mb-2">Companies</h2>
-              <div className="grid grid-cols-2 gap-4">
-                {rooms[selectedRoom].companies.map((company) => (
-                  <div key={company.name} className="text-center">
-                    <img
-                      src={company.logo}
-                      alt={company.name}
-                      className="w-24 h-24 mx-auto mb-2"
-                    />
-                    <p>{company.name}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          {/* Judge Score Input */}
-          <div className="mb-6">
-            <h2 className="text-xl font-semibold mb-2">Judge Scoring</h2>
-            {rooms[selectedRoom].judges.map((judge) => (
-              <div key={judge.name} className="mb-4">
-                <h3 className="font-medium">{judge.name}</h3>
-                {teams.map((team) => (
-                  <div key={team} className="flex items-center mb-2">
-                    <label className="w-32">{team}:</label>
-                    <select
-                      className="border rounded p-1"
-                      onChange={(e) => handleJudgeSubmit(team, judge.name, e.target.value)}
-                      defaultValue=""
-                    >
-                      <option value="" disabled>
-                        Select Score
-                      </option>
-                      {[1, 2, 3, 4, 5].map((score) => (
-                        <option key={score} value={score}>
-                          {score}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                ))}
-              </div>
-            ))}
-          </div>
-
-          {/* Audience Voting */}
-          <div className="mb-6">
-            <h2 className="text-xl font-semibold mb-2">Audience Voting</h2>
-            {teams.map((team) => (
-              <div key={team} className="flex items-center mb-2">
-                <label className="w-32">{team}:</label>
-                <select
-                  className="border rounded p-1"
-                  onChange={(e) => handleAudienceSubmit(team, e.target.value)}
-                  defaultValue=""
-                >
-                  <option value="" disabled>
-                    Select Vote
-                  </option>
-                  {[1, 2, 3, 4, 5].map((vote) => (
-                    <option key={vote} value={vote}>
-                      {vote}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            ))}
-          </div>
-
-          {/* Results */}
-          <div>
-            <h2 className="text-xl font-semibold mb-2">Results</h2>
-            <div className="bg-white p-4 rounded shadow">
-              {teams.map((team) => (
-                <div key={team} className="flex justify-between mb-2">
-                  <span>{team}</span>
-                  <span>Score: {calculateTeamScore(team)}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      );
-    };
-
-    try {
-      const root = ReactDOM.createRoot(document.getElementById("root"));
-      root.render(
-        <ErrorBoundary>
-          <App />
-        </ErrorBoundary>
-      );
-      console.log("Pitch Tank App: Full app rendered successfully");
-    } catch (error) {
-      console.error("Pitch Tank App: Full app render failed", error);
-      document.getElementById("error").innerHTML = "Error: App failed to render. Check console.";
+    function showError(msg) {
+      const error = document.getElementById('error');
+      error.textContent = msg;
+      error.classList.remove('hidden');
+      setTimeout(() => error.classList.add('hidden'), 3000);
     }
+
+    document.getElementById('judgeForm').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const team = document.getElementById('teamName').value;
+      const judge = document.getElementById('judgeName').value;
+      const score = parseFloat(document.getElementById('score').value);
+      const room = document.getElementById('roomSelect').value;
+
+      if (!team || !judge || !score) return showError('Please fill all fields');
+      if (score < 1 || score > 5) return showError('Score must be between 1 and 5');
+
+      db.ref('scores').push({ room, team, judge, score, timestamp: Date.now() });
+      document.getElementById('judgeForm').reset();
+      document.getElementById('teamName').value = '';
+      document.getElementById('judgeName').value = '';
+    });
+
+    document.getElementById('audienceForm').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const team = document.getElementById('audienceTeamName').value;
+      const score = parseFloat(document.getElementById('audienceScore').value);
+      const room = document.getElementById('roomSelect').value;
+
+      if (!team || !score) return showError('Please fill all fields');
+      if (score < 1 || score > 5) return showError('Score must be between 1 and 5');
+
+      db.ref('scores').push({ room, team, judge: 'Audience', score, timestamp: Date.now() });
+      document.getElementById('audienceForm').reset();
+      document.getElementById('audienceTeamName').value = '';
+    });
+
+    db.ref('scores').on('value', (snapshot) => {
+      scores = snapshot.val() || {};
+      renderChart();
+    });
+
+    function renderChart() {
+      const room = document.getElementById('roomSelect').value;
+      const teamScores = {};
+      Object.values(scores).forEach(({ room: r, team, judge, score }) => {
+        if (r !== room) return;
+        if (!teamScores[team]) teamScores[team] = { judges: [], audience: null };
+        if (judge === 'Audience') teamScores[team].audience = score;
+        else teamScores[team].judges.push(score);
+      });
+
+      const aggregated = {};
+      Object.keys(teamScores).forEach(team => {
+        const { judges, audience } = teamScores[team];
+        const judgeCount = rooms[room].judges.length;
+        const judgeAvg = judges.length ? judges.reduce((sum, s) => sum + s, 0) / judges.length : 0;
+        const audienceWeight = audience ? audience / judgeCount : 0;
+        aggregated[team] = judgeAvg + audienceWeight;
+      });
+
+      const ctx = document.getElementById('resultsChart').getContext('2d');
+      if (myChart) myChart.destroy();
+      myChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: Object.keys(aggregated),
+          datasets: [{
+            label: 'Team Scores',
+            data: Object.values(aggregated),
+            backgroundColor: 'rgba(75, 192, 192, 0.6)',
+            borderColor: 'rgba(75, 192, 192, 1)',
+            borderWidth: 1
+          }]
+        },
+        options: {
+          scales: { y: { beginAtZero: true, max: 10 } },
+          plugins: { title: { display: true, text: `Scores for ${room}` } }
+        }
+      });
+    }
+
+    document.getElementById('roomSelect').addEventListener('change', renderRoom);
+    renderRoom();
   </script>
 </body>
 </html>
