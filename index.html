@@ -9,15 +9,15 @@
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-database-compat.js"></script>
   <style>
     body {
-      background-color: #0e343c; /* Replace with your desired hex code or color name */
+      background-color: #0e343c; /* Dark teal background */
     }
   </style>
 </head>
-<body class="container mx-auto p-4">
+<body class="container mx-auto p-4 text-white">
   <h1 class="text-3xl font-bold mb-4">Pitch Tank Competition</h1>
   <div class="mb-4">
     <label class="mr-2">Select Room:</label>
-    <select id="roomSelect" class="border p-2 rounded">
+    <select id="roomSelect" class="border p-2 rounded bg-gray-800 text-white">
       <option value="Studio 1">Studio 1</option>
       <option value="Studio 2">Studio 2</option>
       <option value="Studio 3">Studio 3</option>
@@ -25,20 +25,12 @@
     </select>
   </div>
   <div class="mb-6">
-    <h2 class="text-2xl font-semibold">Judge Score Entry</h2>
+    <h2 class="text-2xl font-semibold">Score Entry</h2>
     <form id="judgeForm" class="flex flex-col gap-4 max-w-md">
-      <select id="teamName" class="border p-2 rounded"></select>
-      <select id="judgeName" class="border p-2 rounded"></select>
-      <input id="score" type="number" step="0.1" min="1" max="5" placeholder="Score (1-5)" class="border p-2 rounded">
-      <button type="submit" class="bg-blue-500 text-white p-2 rounded">Submit Score</button>
-    </form>
-  </div>
-  <div class="mb-6">
-    <h2 class="text-2xl font-semibold">Audience Score Entry</h2>
-    <form id="audienceForm" class="flex flex-col gap-4 max-w-md">
-      <select id="audienceTeamName" class="border p-2 rounded"></select>
-      <input id="audienceScore" type="number" step="0.1" min="1" max="5" placeholder="Audience Score (1-5)" class="border p-2 rounded">
-      <button type="submit" class="bg-green-500 text-white p-2 rounded">Submit Audience Score</button>
+      <select id="teamName" class="border p-2 rounded bg-gray-800 text-white"></select>
+      <select id="judgeName" class="border p-2 rounded bg-gray-800 text-white"></select>
+      <input id="score" type="number" step="0.1" min="1" max="5" placeholder="Score (1-5)" class="border p-2 rounded bg-gray-800 text-white">
+      <button type="submit" class="bg-blue-500 text-white p-2 rounded hover:bg-blue-600">Submit Score</button>
     </form>
   </div>
   <p id="error" class="text-red-500 hidden"></p>
@@ -49,14 +41,14 @@
 
   <script>
     const firebaseConfig = {
-  apiKey: "AIzaSyDRwVHh0r-hpb1Wfa6YdSj4cZRWx9Wl0pM",
-  authDomain: "asotu-con-pitch-tank.firebaseapp.com",
-  databaseURL: "https://asotu-con-pitch-tank-default-rtdb.firebaseio.com",
-  projectId: "asotu-con-pitch-tank",
-  storageBucket: "asotu-con-pitch-tank.firebasestorage.app",
-  messagingSenderId: "397957008743",
-  appId: "1:397957008743:web:abec7ce7b961f219b8f3c2"
-};
+      apiKey: "AIzaSyDRwVHh0r-hpb1Wfa6YdSj4cZRWx9Wl0pM",
+      authDomain: "asotu-con-pitch-tank.firebaseapp.com",
+      databaseURL: "https://asotu-con-pitch-tank-default-rtdb.firebaseio.com",
+      projectId: "asotu-con-pitch-tank",
+      storageBucket: "asotu-con-pitch-tank.firebasestorage.app",
+      messagingSenderId: "397957008743",
+      appId: "1:397957008743:web:abec7ce7b961f219b8f3c2"
+    };
 
     let db;
     try {
@@ -65,6 +57,7 @@
       console.log('Firebase initialized');
     } catch (error) {
       console.error('Firebase initialization failed:', error);
+      showError('Failed to initialize Firebase');
     }
 
     const rooms = {
@@ -72,7 +65,8 @@
         judges: [
           { name: 'Beth Hill', img: 'https://cdn.prod.website-files.com/62ab9f4fc865d02bc0ff852c/67f03c80e0dffce90233269e_Beth%20Hill%20700x700.avif' },
           { name: 'Christopher Twohig', img: 'https://cdn.prod.website-files.com/62ab9f4fc865d02bc0ff852c/67efd4b4f6945bc7d7441b14_Christopher%20Twohig%20500x500%20ACON%2025%20Speaker%20Web.avif' },
-          { name: 'Chase Fraser', img: 'https://cdn.prod.website-files.com/62ab9f4fc865d02bc0ff852c/67e5a0e035fe17f9510fa28a_Chase%20Fraser%20ACON%2025%20500x500%20Speaker%20Web.avif' }
+          { name: 'Chase Fraser', img: 'https://cdn.prod.website-files.com/62ab9f4fc865d02bc0ff852c/67e5a0e035fe17f9510fa28a_Chase%20Fraser%20ACON%2025%20500x500%20Speaker%20Web.avif' },
+          { name: 'Audience', img: 'https://cdn.prod.website-files.com/62ab9f4fc865d09730ff8508/6756808307c74f793746056c_ASOTU.svg' }
         ],
         companies: [
           { name: 'Autoz Network LLC', logo: 'https://cdn.prod.website-files.com/62ab9f4fc865d02bc0ff852c/68079871eb04b08e6cbe0055_autozNetwork%20ASOTUCON%2025%20web%20logo.png' },
@@ -84,7 +78,8 @@
         judges: [
           { name: 'Ben Hadley', img: 'https://cdn.prod.website-files.com/62ab9f4fc865d02bc0ff852c/68010ccdecfbbdee01b7d8c3_Ben%20Hadley%20500x500%20ACON%2025%20Speaker%20Web.png' },
           { name: 'Patrick Abad', img: 'https://cdn.prod.website-files.com/62ab9f4fc865d02bc0ff852c/67ea9d515d75177f491eec27_Patrick%20Abad%20ACON%2025%20500x500%20Speaker%20Web.avif' },
-          { name: 'Bill Cariss', img: 'https://cdn.prod.website-files.com/62ab9f4fc865d02bc0ff852c/680a856209053b8bbc6e8c20_Bill%20Cariss%20500x500%20ACON%2025%20Speaker%20Web.png' }
+          { name: 'Bill Cariss', img: 'https://cdn.prod.website-files.com/62ab9f4fc865d02bc0ff852c/680a856209053b8bbc6e8c20_Bill%20Cariss%20500x500%20ACON%2025%20Speaker%20Web.png' },
+          { name: 'Audience', img: 'https://cdn.prod.website-files.com/62ab9f4fc865d09730ff8508/6756808307c74f793746056c_ASOTU.svg' }
         ],
         companies: [
           { name: 'Carmen', logo: 'https://carmen.sg/wp-content/uploads/2022/08/logo2_retina.png' },
@@ -96,7 +91,8 @@
         judges: [
           { name: 'Elizabeth Shults', img: 'https://cdn.prod.website-files.com/62ab9f4fc865d02bc0ff852c/6806488283b7af14cc4e80c3_Elizabeth%20Shults%20500X500.png' },
           { name: 'Brian Donnelly', img: 'https://cdn.prod.website-files.com/62ab9f4fc865d02bc0ff852c/67ec4eef9c6847853da2cd30_Brian%20Donnelly%20500x500%20ACON%2025%20Speaker%20Web.avif' },
-          { name: 'Tony Fowler', img: 'https://cdn.prod.website-files.com/62ab9f4fc865d02bc0ff852c/67f3d494ec20f7efae77bd41_Tony%20Fowler%20500X500.avif' }
+          { name: 'Tony Fowler', img: 'https://cdn.prod.website-files.com/62ab9f4fc865d02bc0ff852c/67f3d494ec20f7efae77bd41_Tony%20Fowler%20500X500.avif' },
+          { name: 'Audience', img: 'https://cdn.prod.website-files.com/62ab9f4fc865d09730ff8508/6756808307c74f793746056c_ASOTU.svg' }
         ],
         companies: [
           { name: 'Fasten Rewards', logo: 'https://cdn.prod.website-files.com/62ab9f4fc865d02bc0ff852c/68090d6b8276aa135eb57568_Fasten%20Rewards%20ASOTUCON%2025.png' },
@@ -109,7 +105,8 @@
           { name: 'Beth Hill', img: 'https://cdn.prod.website-files.com/62ab9f4fc865d02bc0ff852c/67f03c80e0dffce90233269e_Beth%20Hill%20700x700.avif' },
           { name: 'Chase Fraser', img: 'https://cdn.prod.website-files.com/62ab9f4fc865d02bc0ff852c/67e5a0e035fe17f9510fa28a_Chase%20Fraser%20ACON%2025%20500x500%20Speaker%20Web.avif' },
           { name: 'Bill Cariss', img: 'https://cdn.prod.website-files.com/62ab9f4fc865d02bc0ff852c/680a856209053b8bbc6e8c20_Bill%20Cariss%20500x500%20ACON%2025%20Speaker%20Web.png' },
-          { name: 'Brian Donnelly', img: 'https://cdn.prod.website-files.com/62ab9f4fc865d02bc0ff852c/67ec4eef9c6847853da2cd30_Brian%20Donnelly%20500x500%20ACON%2025%20Speaker%20Web.avif' }
+          { name: 'Brian Donnelly', img: 'https://cdn.prod.website-files.com/62ab9f4fc865d02bc0ff852c/67ec4eef9c6847853da2cd30_Brian%20Donnelly%20500x500%20ACON%2025%20Speaker%20Web.avif' },
+          { name: 'Audience', img: 'https://cdn.prod.website-files.com/62ab9f4fc865d09730ff8508/6756808307c74f793746056c_ASOTU.svg' }
         ],
         companies: [
           { name: 'Finalist 1', logo: 'https://via.placeholder.com/150?text=Finalist1' },
@@ -131,7 +128,6 @@
       console.log('Rendering room:', room);
       const judgeSelect = document.getElementById('judgeName');
       const teamSelect = document.getElementById('teamName');
-      const audienceTeamSelect = document.getElementById('audienceTeamName');
 
       if (!rooms[room]) {
         console.error('Invalid room:', room);
@@ -147,14 +143,11 @@
         rooms[room].teams.map(team => `<option value="${team}">${team}</option>`).join('');
       console.log('Team options populated:', teamSelect.innerHTML);
 
-      audienceTeamSelect.innerHTML = '<option value="">Select Company</option>' +
-        rooms[room].teams.map(team => `<option value="${team}">${team}</option>`).join('');
-      console.log('Audience team options populated:', audienceTeamSelect.innerHTML);
-
       renderResults();
     }
 
     function showError(msg) {
+      console.log('Error displayed:', msg);
       const error = document.getElementById('error');
       error.textContent = msg;
       error.classList.remove('hidden');
@@ -168,50 +161,57 @@
       const score = parseFloat(document.getElementById('score').value);
       const room = document.getElementById('roomSelect').value;
 
-      if (!team || !judge || !score) return showError('Please fill all fields');
-      if (score < 1 || score > 5) return showError('Score must be between 1 and 5');
+      console.log('Score form submitted:', { room, team, judge, score });
+
+      if (!team || !judge || !score) {
+        showError('Please fill all fields');
+        return;
+      }
+      if (score < 1 || score > 5) {
+        showError('Score must be between 1 and 5');
+        return;
+      }
 
       if (db) {
-        db.ref('scores').push({ room, team, judge, score, timestamp: Date.now() });
+        console.log('Attempting to save score to Firebase');
+        db.ref('scores').push({ room, team, judge, score, timestamp: Date.now() }, (error) => {
+          if (error) {
+            console.error('Failed to save score:', error);
+            showError(`Failed to save score: ${error.message}`);
+          } else {
+            console.log('Score saved successfully');
+          }
+        });
         document.getElementById('judgeForm').reset();
         document.getElementById('teamName').value = '';
         document.getElementById('judgeName').value = '';
       } else {
         showError('Database not available');
-      }
-    });
-
-    document.getElementById('audienceForm').addEventListener('submit', (e) => {
-      e.preventDefault();
-      const team = document.getElementById('audienceTeamName').value;
-      const score = parseFloat(document.getElementById('audienceScore').value);
-      const room = document.getElementById('roomSelect').value;
-
-      if (!team || !score) return showError('Please fill all fields');
-      if (score < 1 || score > 5) return showError('Score must be between 1 and 5');
-
-      if (db) {
-        db.ref('scores').push({ room, team, judge: 'Audience', score, timestamp: Date.now() });
-        document.getElementById('audienceForm').reset();
-        document.getElementById('audienceTeamName').value = '';
-      } else {
-        showError('Database not available');
+        console.error('Database not initialized');
       }
     });
 
     if (db) {
+      console.log('Setting up Firebase listener for scores');
       db.ref('scores').on('value', (snapshot) => {
         scores = snapshot.val() || {};
         console.log('Scores updated:', scores);
         renderResults();
+      }, (error) => {
+        console.error('Failed to fetch scores:', error);
+        showError(`Failed to fetch scores: ${error.message}`);
       });
+    } else {
+      console.log('No Firebase listener set up: db is undefined');
     }
 
     function renderResults() {
       const room = document.getElementById('roomSelect').value;
+      console.log('Rendering results for room:', room);
       const resultsContent = document.getElementById('resultsContent');
       if (!rooms[room]) {
-        resultsContent.innerHTML = '<p class="text-gray-500">Invalid room selected</p>';
+        resultsContent.innerHTML = '<p class="text-gray-400">Invalid room selected</p>';
+        console.log('Invalid room, results not rendered');
         return;
       }
 
@@ -223,44 +223,43 @@
         else teamScores[team].judges[judge] = score;
       });
 
-      let html = '';
+      let html = '<div class="flex flex-col md:flex-row gap-8 justify-center">';
       rooms[room].companies.forEach(company => {
         const scores = teamScores[company.name] || { judges: {}, audience: null };
-        const judgeCount = rooms[room].judges.length;
         const judgeScores = rooms[room].judges.map(judge => {
-          const score = scores.judges[judge.name] || 'N/A';
+          const score = judge.name === 'Audience' ? (scores.audience || 'N/A') : (scores.judges[judge.name] || 'N/A');
           return { judge, score };
         });
-        const audienceScore = scores.audience || 'N/A';
-        const judgeAvg = Object.values(scores.judges).length
-          ? Object.values(scores.judges).reduce((sum, s) => sum + s, 0) / Object.values(scores.judges).length
-          : 0;
-        const audienceWeight = scores.audience ? scores.audience / judgeCount : 0;
-        const finalTally = (judgeAvg + audienceWeight).toFixed(2);
+        // Collect all scores (judge + audience) for averaging
+        const allScores = [
+          ...Object.values(scores.judges).filter(score => typeof score === 'number'),
+          ...(scores.audience ? [scores.audience] : [])
+        ];
+        // Calculate average to 4 decimal places
+        const finalTally = allScores.length
+          ? (allScores.reduce((sum, score) => sum + score, 0) / allScores.length).toFixed(4)
+          : '0.0000';
 
         html += `
-          <div class="mb-8">
-            <div class="text-center mb-4">
-              <img src="${company.logo}" alt="${company.name}" class="w-48 h-48 mx-auto">
-              <h3 class="text-xl font-semibold">${company.name}</h3>
-            </div>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div class="flex-1 text-center">
+            <p class="text-lg font-bold mb-2">Score: ${finalTally}</p>
+            <img src="${company.logo}" alt="${company.name}" class="w-32 h-32 mx-auto mb-2 object-contain">
+            <h3 class="text-md font-semibold mb-4">${company.name}</h3>
+            <div class="text-left max-w-xs mx-auto">
               ${judgeScores.map(({ judge, score }) => `
-                <div class="flex items-center">
-                  <img src="${judge.img}" alt="${judge.name}" class="w-12 h-12 rounded-full mr-4">
-                  <p>${judge.name}: ${score}</p>
+                <div class="flex items-center mb-2">
+                  ${judge.img ? `<img src="${judge.img}" alt="${judge.name}" class="w-10 h-10 rounded-full mr-3">` : '<div class="w-10 h-10 mr-3"></div>'}
+                  <p class="text-sm">${judge.name}: ${score}</p>
                 </div>
               `).join('')}
-              <div class="flex items-center">
-                <p>Audience: ${audienceScore}</p>
-              </div>
             </div>
-            <p class="text-lg font-bold mt-4">Final Tally: ${finalTally}</p>
           </div>
         `;
       });
+      html += '</div>';
 
-      resultsContent.innerHTML = html || '<p class="text-gray-500">No scores submitted yet</p>';
+      resultsContent.innerHTML = html || '<p class="text-gray-400">No scores submitted yet</p>';
+      console.log('Results rendered');
     }
 
     document.addEventListener('DOMContentLoaded', () => {
